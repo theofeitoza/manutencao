@@ -1,18 +1,24 @@
 import flet as ft
-from databases import salvar_funcionarios  # Ajuste o import se necessário
+from databases import salvar_funcionarios, buscar_equipes
 
 def criar_dialogo_funcionario(page: ft.Page, atualizar_tabela_callback):
-    # Referências para os campos
     nome_completo_ref = ft.Ref[ft.TextField]()
     documento_ref = ft.Ref[ft.TextField]()
     telefone_ref = ft.Ref[ft.TextField]()
     email_ref = ft.Ref[ft.TextField]()
     funcao_ref = ft.Ref[ft.TextField]()
-    equipe_ref = ft.Ref[ft.RadioGroup]()
-    cargo_ref = ft.Ref[ft.RadioGroup]()
-    funcao_erro_ref = ft.Ref[ft.Text]()
-    equipe_erro_ref = ft.Ref[ft.Text]()
+    equipe_ref = ft.Ref[ft.Dropdown]()
+    cargo_ref = ft.Ref[ft.TextField]()
+    cargo_erro_ref = ft.Ref[ft.Text]()
     cadastro_dialog_ref = ft.Ref[ft.AlertDialog]()
+
+    def atualizar_dropdown_equipes():
+        equipes = buscar_equipes()
+        equipe_ref.current.options = [
+            ft.dropdown.Option(key=str(equipe[0]), text=equipe[1])
+            for equipe in equipes
+        ]
+        page.update()
 
     def cadastrar_colaborador(e):
         nome_completo = nome_completo_ref.current.value.strip()
@@ -20,7 +26,7 @@ def criar_dialogo_funcionario(page: ft.Page, atualizar_tabela_callback):
         telefone = telefone_ref.current.value.strip()
         email = email_ref.current.value.strip()
         funcao = funcao_ref.current.value
-        equipe = equipe_ref.current.value
+        equipe_id = equipe_ref.current.value
         cargo = cargo_ref.current.value
         campos_invalidos = False
 
@@ -49,31 +55,31 @@ def criar_dialogo_funcionario(page: ft.Page, atualizar_tabela_callback):
             email_ref.current.error_text = None
 
         if not funcao:
-            funcao_erro_ref.current.value = "Selecione uma função"
+            funcao_ref.current.error_text = "Preenchimento obrigatório"
             campos_invalidos = True
         else:
-            funcao_erro_ref.current.value = None
+            funcao_ref.current.error_text = None
 
-        if not equipe:
-            equipe_erro_ref.current.value = "Selecione uma equipe"
+        if not equipe_id:
+            equipe_ref.current.error_text = "Selecione uma equipe"
             campos_invalidos = True
         else:
-            equipe_erro_ref.current.value = None
+            equipe_ref.current.error_text = None
 
         if not cargo:
-            funcao_erro_ref.current.value = "Selecione um cargo"
+            cargo_ref.current.error_text = "Preenchimento obrigatório"
             campos_invalidos = True
         else:
-            funcao_erro_ref.current.value = None
+            cargo_ref.current.error_text = None
+
 
         page.update()
 
         if campos_invalidos:
             return
 
-        # Chamar a função para salvar no banco de dados
         id_gerado = salvar_funcionarios(
-            nome_completo, documento, telefone, email, funcao, equipe, cargo
+            nome_completo, documento, telefone, email, funcao, equipe_id, cargo
         )
 
         atualizar_tabela_callback()
@@ -91,13 +97,14 @@ def criar_dialogo_funcionario(page: ft.Page, atualizar_tabela_callback):
         email_ref.current.value = ""
         funcao_ref.current.value = None
         equipe_ref.current.value = None
-        cargo_ref.current.value = None
+        cargo_ref.current.value = ""
         nome_completo_ref.current.error_text = None
         documento_ref.current.error_text = None
         telefone_ref.current.error_text = None
         email_ref.current.error_text = None
-        funcao_erro_ref.current.value = None
-        equipe_erro_ref.current.value = None
+        funcao_ref.current.error_text = None
+        equipe_ref.current.error_text = None
+        cargo_ref.current.error_text = None
         page.update()
 
     def fechar_dialogo(e):
@@ -109,41 +116,21 @@ def criar_dialogo_funcionario(page: ft.Page, atualizar_tabela_callback):
         content=ft.Column(
             [
                 ft.Text("Cadastro de Colaborador", size=20, weight=ft.FontWeight.BOLD),
-                ft.TextField(label="Nome Completo", ref=nome_completo_ref),
-                ft.TextField(label="Documento (RG)", ref=documento_ref),
-                ft.TextField(label="Telefone", ref=telefone_ref),
-                ft.TextField(label="Email", ref=email_ref),
-                ft.TextField(label="Função", ref=funcao_ref),
-                ft.Row(
-                    [
-                        ft.RadioGroup(
-                            ref=cargo_ref,
-                            content=ft.Column(
-                                [
-                                    ft.Text("Cargo"),
-                                    ft.Radio(value="Líder", label="Líder"),
-                                    ft.Radio(value="Gerente", label="Gerente"),
-                                    ft.Radio(value="Supervisor", label="Supervisor"),
-                                    ft.Radio(value="Encarregado", label="Encarregado"),
-                                    ft.Text("", ref=funcao_erro_ref, color=ft.colors.RED),
-                                ]
-                            ),
-                        ),
-                        ft.RadioGroup(
-                            ref=equipe_ref,
-                            content=ft.Column(
-                                [
-                                    ft.Text("Equipe"),
-                                    ft.Radio(value="Elétrica", label="Elétrica"),
-                                    ft.Radio(value="Mecânica", label="Mecânica"),
-                                    ft.Radio(value="Hidráulica", label="Hidráulica"),
-                                    ft.Radio(value="Automação", label="Automação"),
-                                    ft.Text("", ref=equipe_erro_ref, color=ft.colors.RED),
-                                ]
-                            ),
-                        ),
-                    ]
+                ft.TextField(label="Nome Completo", ref=nome_completo_ref, error_text=""),
+                ft.TextField(label="Documento (RG)", ref=documento_ref, error_text=""),
+                ft.TextField(label="Telefone", ref=telefone_ref, error_text=""),
+                ft.TextField(label="Email", ref=email_ref, error_text=""),
+                ft.TextField(label="Função", ref=funcao_ref, error_text=""),
+                ft.Dropdown(
+                    ref=equipe_ref,
+                    label="Selecione a Equipe",
+                    options=[
+                        ft.dropdown.Option(key=str(equipe[0]), text=equipe[1])
+                        for equipe in buscar_equipes()
+                    ],
+                    error_text="",
                 ),
+                ft.TextField(label="Cargo", ref=cargo_ref, error_text=""),
                 ft.Row(
                     [
                         ft.ElevatedButton("Cadastrar", on_click=cadastrar_colaborador),
@@ -151,15 +138,16 @@ def criar_dialogo_funcionario(page: ft.Page, atualizar_tabela_callback):
                         ft.ElevatedButton("Fechar", on_click=fechar_dialogo),
                     ]
                 ),
-            ]
+            ],
+            scroll=ft.ScrollMode.ADAPTIVE
         ),
         ref=cadastro_dialog_ref,
     )
 
     page.overlay.append(cadastro_dialog)
 
-    # Função para abrir o dialog
     def abrir_dialogo():
+        atualizar_dropdown_equipes()
         cadastro_dialog_ref.current.open = True
         page.update()
 

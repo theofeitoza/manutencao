@@ -1,8 +1,7 @@
 import flet as ft
-from databases import salvar_equipamentos  # Ajuste o import se necessário
+from databases import salvar_equipamentos
 
-def criar_dialogo_equipamentos(page: ft.Page, atualizar_tabela_callback):
-    # Referências para os campos
+def criar_dialogo_equipamentos(page: ft.Page, atualizar_tabela_callback, on_equipment_added_callback=None):
     nome_equipamento_ref = ft.Ref[ft.TextField]()
     descricao_equipamento_ref = ft.Ref[ft.TextField]()
     modelo_fabricante_ref = ft.Ref[ft.TextField]()
@@ -77,6 +76,8 @@ def criar_dialogo_equipamentos(page: ft.Page, atualizar_tabela_callback):
         )
 
         atualizar_tabela_callback()
+        if on_equipment_added_callback:
+            on_equipment_added_callback()
         
         fechar_dialogo(None)
         page.snack_bar = ft.SnackBar(ft.Text(f"Cadastro realizado com sucesso! ID: {id_gerado}"))
@@ -102,8 +103,9 @@ def criar_dialogo_equipamentos(page: ft.Page, atualizar_tabela_callback):
         page.update()
 
     def fechar_dialogo(e):
-        cadastro_dialog_ref.current.open = False
-        page.update()
+        if cadastro_dialog_ref.current is not None:
+            cadastro_dialog_ref.current.open = False
+            page.update()
 
     cadastro_dialog = ft.AlertDialog(
         modal=True,
@@ -150,17 +152,16 @@ def criar_dialogo_equipamentos(page: ft.Page, atualizar_tabela_callback):
                         ft.ElevatedButton("Fechar", on_click=fechar_dialogo),
                     ]
                 ),
-            ]
+            ],
+            scroll=ft.ScrollMode.ADAPTIVE
         ),
         ref=cadastro_dialog_ref,
     )
 
     page.overlay.append(cadastro_dialog)
 
-    # Função para abrir o dialog
     def abrir_dialogo():
         cadastro_dialog_ref.current.open = True
         page.update()
 
     return abrir_dialogo
-    
